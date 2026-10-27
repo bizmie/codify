@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembantu Kod Gemini</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        winBlue: '#0078D4',
+                        winBlueHover: '#005A9E',
+                        winBg: '#F3F3F3',
+                        winBgDark: '#202020',
+                        winBorder: {
+                            light: '#E5E5E5',
+                            dark: '#333333'
+                        },
+                        navy: '#001F3F'
+                    },
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['Consolas', '"Courier New"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Gaya tetingkap dan skrolbar gaya Windows */
+        ::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(150, 150, 150, 0.4);
+            border: 4px solid transparent;
+            background-clip: padding-box;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(150, 150, 150, 0.6);
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 100, 100, 0.6);
+        }
+        .glass-mica {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .dark .glass-mica {
+            background: rgba(32, 32, 32, 0.75);
+        }
+
+        /* Skema Warna Kod HTML Gemini */
+        .syn-tag { color: #1a73e8; font-weight: 500; }
+        .syn-attr { color: #d93025; }
+        .syn-val { color: #1a73e8; }
+        .syn-com { color: #1e8e3e; font-style: italic; }
+        
+        .dark .syn-tag { color: #8ab4f8; font-weight: 500; }
+        .dark .syn-attr { color: #f28b82; }
+        .dark .syn-val { color: #8ab4f8; }
+        .dark .syn-com { color: #81c995; font-style: italic; }
+
+        /* Grid Garis Halus & Ketinggian Baris Tetap */
+        .editor-content {
+            font-size: 14px !important;
+            line-height: 24px !important;
+        }
+        .bg-grid-lines {
+            background-image: linear-gradient(to bottom, transparent 23px, #e5e5e5 23px);
+            background-size: 100% 24px;
+            background-attachment: local;
+            background-origin: content-box;
+        }
+        .dark .bg-grid-lines {
+            background-image: linear-gradient(to bottom, transparent 23px, #333333 23px);
+        }
+
+        /* Keterlihatan Highlight untuk textarea lutsinar */
+        #projectCodeInput::selection {
+            background-color: rgba(0, 120, 212, 0.4);
+            color: transparent;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col bg-winBg dark:bg-winBgDark text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 overflow-hidden">
+
+    <!-- Header / Title Bar (Navy Blue) -->
+    <div class="h-10 bg-navy text-white flex justify-between items-center px-4 select-none flex-shrink-0 z-20">
+        <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+            <div class="flex flex-col justify-center">
+                <span class="text-[15px] font-bold tracking-widest leading-none mt-0.5">CODIFY</span>
+                <span id="appTitleBar" class="text-[10px] text-blue-200 font-medium tracking-wide leading-none mt-1">Pembantu Kod Gemini</span>
+            </div>
+        </div>
+        
+        <!-- Theme Toggle (Right side only) -->
+        <div class="flex items-center">
+            <button id="btnThemeToggle" class="p-1.5 rounded hover:bg-white/20 transition-colors" title="Tukar Tema (Cerah/Gelap)">
+                <!-- Sun Icon -->
+                <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <!-- Moon Icon -->
+                <svg id="iconMoon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="glass-mica border-b border-winBorder-light dark:border-winBorder-dark px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2 flex-shrink-0 shadow-sm z-10">
+        
+        <!-- Kawasan Kiri: Undo, Aktiviti, Redo -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#2D2D2D] shadow-sm">
+                <!-- Butang Undo -->
+                <button id="btnUndo" class="px-3 py-1.5 flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-l text-sm border-r border-gray-300 dark:border-gray-600" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                </button>
+                
+                <!-- Butang Aktiviti (Dropdown) -->
+                <div class="relative">
+                    <button id="btnAktiviti" class="px-3 py-1.5 flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium border-r border-gray-300 dark:border-gray-600">
+                        Aktiviti
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <!-- Menu Aktiviti -->
+                    <div id="dropdownAktiviti" class="absolute left-0 mt-1 w-64 bg-white dark:bg-[#2D2D2D] border border-gray-200 dark:border-gray-600 rounded shadow-lg hidden z-50 py-1 max-h-60 overflow-y-auto">
+                        <ul id="historyList" class="text-sm">
+                            <!-- Senarai sejarah akan dijana oleh JS -->
+                            <li class="px-4 py-2 text-gray-500 italic">Tiada sejarah</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Butang Redo -->
+                <button id="btnRedo" class="px-3 py-1.5 flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-r text-sm" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Kawasan Kanan: Load, Save, Proses, Preview -->
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            
+            <!-- Projek Manager Button -->
+            <button id="btnProjectManager" class="px-3 py-1.5 bg-white dark:bg-[#333] border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 rounded text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5" title="Urus Projek (Local)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>
+                Projek
+            </button>
+
+            <!-- Load Project -->
+            <button id="btnLoadProject" class="px-3 py-1.5 bg-white dark:bg-[#333] border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 rounded text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5" title="Muat Naik Fail HTML">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Load
+            </button>
+            
+            <!-- Save Project -->
+            <button id="btnSaveProject" class="px-3 py-1.5 bg-white dark:bg-[#333] border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 rounded text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5" title="Simpan sebagai Fail HTML">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                Save
+            </button>
+
+            <!-- Proses Pindaan -->
+            <button id="btnProcessDiff" class="px-4 py-1.5 bg-winBlue hover:bg-winBlueHover text-white rounded text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5 ml-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Proses Pindaan
+            </button>
+            
+            <!-- Preview -->
+            <button id="btnPreview" class="px-4 py-1.5 bg-white dark:bg-[#333] border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 rounded text-sm font-medium shadow-sm transition-colors flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                Preview
+            </button>
+        </div>
+    </div>
+
+    <!-- Ruang Kerja (Workspace) -->
+    <div class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden min-h-0 bg-transparent">
+        
+        <!-- Panel Kiri: Kod Projek -->
+        <div id="leftPanel" class="flex-1 flex flex-col bg-white dark:bg-[#1E1E1E] rounded border border-winBorder-light dark:border-winBorder-dark shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden transition-all duration-300 min-w-0 min-h-0">
+            <div class="px-4 py-2 bg-[#F9F9F9] dark:bg-[#2D2D2D] border-b border-winBorder-light dark:border-winBorder-dark flex justify-between items-center select-none">
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Projek HTML Asal</span>
+                <div class="flex gap-1">
+                    <!-- Expand/Shrink -->
+                    <button id="btnToggleExpand" class="p-1.5 border border-green-500 rounded hover:bg-green-50 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 transition-colors" title="Lebarkan/Kecilkan Ruang">
+                        <svg id="iconExpand" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                        <svg id="iconShrink" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4m-4 0V6m0 4l5-5M10 14H6m4 0v4m0-4l-5 5" /></svg>
+                    </button>
+                    <!-- Copy -->
+                    <button id="btnCopyCode" class="p-1.5 border border-blue-500 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors" title="Salin Kod Projek">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    </button>
+                    <!-- Padam / Trash -->
+                    <button id="btnConfirmClear" class="p-1.5 border border-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors" title="Padam Projek">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Editor Ruang Bersarang (Highlight & Input & Nombor Baris) -->
+            <div class="relative flex-1 flex w-full min-h-0 bg-white dark:bg-[#1E1E1E]">
+                <!-- Ruang Nombor Baris -->
+                <div id="lineNumbers" class="w-12 bg-gray-50 dark:bg-[#252525] border-r border-winBorder-light dark:border-winBorder-dark text-right py-4 pr-2 select-none font-mono text-gray-400 dark:text-gray-500 overflow-hidden flex-shrink-0 z-20 editor-content bg-grid-lines">1</div>
+                
+                <!-- Ruang Kod Sebenar -->
+                <div class="relative flex-1 min-h-0">
+                    <!-- Lapisan Warna (Syntax Highlighting) -->
+                    <pre id="highlightLayer" class="absolute inset-0 w-full h-full p-4 m-0 overflow-hidden font-mono whitespace-pre text-gray-800 dark:text-gray-200 pointer-events-none z-0 editor-content bg-grid-lines"></pre>
+                    
+                    <!-- Lapisan Teks Sebenar -->
+                    <textarea id="projectCodeInput" class="absolute inset-0 w-full h-full p-4 m-0 overflow-auto font-mono whitespace-pre outline-none resize-none bg-transparent text-transparent caret-black dark:caret-white placeholder-gray-400 z-10 editor-content" spellcheck="false" placeholder="Tampalkan kod penuh HTML/JS/CSS di sini..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Kanan: Arahan Pindaan -->
+        <div id="rightPanel" class="flex-1 flex flex-col bg-white dark:bg-[#1E1E1E] rounded border border-winBorder-light dark:border-winBorder-dark shadow-[0_4px_12px_rgba(0,0,0,0.1)] overflow-hidden transition-all duration-300 min-w-0 min-h-0">
+            <div class="px-4 py-2 bg-[#F9F9F9] dark:bg-[#2D2D2D] border-b border-winBorder-light dark:border-winBorder-dark flex justify-between items-center select-none">
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Arahan Pindaan (Dari Gemini)</span>
+                <!-- Ikon Padam (X) -->
+                <button id="btnClearDiff" class="p-1.5 border border-gray-400 dark:border-gray-500 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors" title="Kosongkan Arahan">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <textarea id="diffInput" class="flex-1 w-full p-4 bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-gray-800 dark:text-gray-200 placeholder-gray-400 overflow-y-auto whitespace-pre" placeholder="Tampal output dari Gemini di sini.&#10;&#10;<<<<&#10;[Kod Lama]&#10;====&#10;[Kod Baru]&#10;>>>>"></textarea>
+            
+            <div class="px-4 py-2 bg-gray-50 dark:bg-[#252525] border-t border-winBorder-light dark:border-winBorder-dark flex justify-center items-center select-none">
+                <span class="text-[10px] text-gray-500 font-mono tracking-widest">Gunakan format: &lt;&lt;&lt;&lt; [Lama] ==== [Baru] &gt;&gt;&gt;&gt;</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Aplikasi Baharu -->
+    <div class="bg-[#EAEAEA] dark:bg-[#1A1A1A] border-t border-winBorder-light dark:border-winBorder-dark px-4 py-1.5 flex justify-end items-center flex-shrink-0 z-20">
+        <span id="appFooterVersion" class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Pembantu Kod Gemini &copy; Codify V5.1</span>
+    </div>
+
+    <!-- Modal Manager Projek -->
+    <div id="projectModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity opacity-0">
+        <div class="bg-white dark:bg-[#2D2D2D] rounded shadow-[0_20px_40px_rgba(0,0,0,0.2)] w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-200" id="projectModalCard">
+            <div class="px-5 py-3 border-b border-winBorder-light dark:border-winBorder-dark flex justify-between items-center bg-[#F9F9F9] dark:bg-[#252525]">
+                <div class="flex items-center gap-3">
+                    <h3 class="font-semibold text-sm text-gray-900 dark:text-white">Pengurus Projek</h3>
+                    <button id="btnNewProject" class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-800/50 text-[10px] font-bold uppercase tracking-wider rounded transition shadow-sm border border-green-200 dark:border-green-800" title="Mulakan kanvas baru yang bersih">+ Baru</button>
+                </div>
+                <button id="btnCloseProjectManager" class="text-gray-500 hover:text-red-500 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-5">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="presetName" placeholder="Nama Projek Baru..." class="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#1E1E1E] dark:text-white outline-none focus:border-winBlue transition">
+                    <button id="btnSavePreset" class="px-3 py-1.5 bg-winBlue text-white text-sm font-medium rounded hover:bg-winBlueHover transition shadow-sm">Simpan</button>
+                </div>
+                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Senarai Projek Tersimpan</div>
+                <div id="presetList" class="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-[#1E1E1E]">
+                    <!-- Dijana oleh JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pengesahan Kosongkan -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50 transition-opacity opacity-0">
+        <div class="bg-white dark:bg-[#2D2D2D] rounded shadow-[0_20px_40px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200" id="confirmModalCard">
+            <div class="p-5">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Padam Projek?</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-300">Adakah anda pasti mahu memadam semua kod projek? Tindakan ini akan mengosongkan ruang editor. (Boleh di-Undo).</p>
+            </div>
+            <div class="px-5 py-3 bg-gray-50 dark:bg-[#252525] flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button id="btnCancelClear" class="px-4 py-1.5 rounded bg-white dark:bg-[#333] border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-[#444] transition-colors font-medium">Batal</button>
+                <button id="btnExecuteClear" class="px-4 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-sm transition-colors font-medium">Ya, Padam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Preview -->
+    <div id="previewModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex-col z-50">
+        <!-- Header Modal (Hijau) -->
+        <div class="bg-green-600 text-white flex justify-between items-center px-4 py-2 select-none shadow-md">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                <span class="text-sm font-bold">Pratonton Langsung</span>
+            </div>
+            <button id="btnClosePreview" class="p-1 rounded-md hover:bg-green-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <!-- Ruang Iframe dengan border hijau tebal -->
+        <div class="flex-1 bg-gray-200 dark:bg-[#1E1E1E] p-2 sm:p-4 overflow-hidden flex flex-col">
+            <div class="flex-1 bg-white border-4 border-green-600 shadow-[0_30px_60px_rgba(0,0,0,0.15)] rounded-sm overflow-hidden relative">
+                <iframe id="previewFrame" class="w-full h-full bg-white border-0" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 px-4 py-3 rounded shadow-lg">
+        <svg id="toastIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
+        <span id="toastMessage" class="text-sm font-medium"></span>
+    </div>
+
+    <!-- JavaScript Utama -->
+    <script>
+        // Elemen DOM
+        const elProjectCode = document.getElementById('projectCodeInput');
+        const elDiffInput = document.getElementById('diffInput');
+        const btnProcessDiff = document.getElementById('btnProcessDiff');
+        
+        const btnThemeToggle = document.getElementById('btnThemeToggle');
+        const iconSun = document.getElementById('iconSun');
+        const iconMoon = document.getElementById('iconMoon');
+        
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmModalCard = document.getElementById('confirmModalCard');
+        const btnConfirmClear = document.getElementById('btnConfirmClear');
+        const btnCancelClear = document.getElementById('btnCancelClear');
+        const btnExecuteClear = document.getElementById('btnExecuteClear');
+        
+        const previewModal = document.getElementById('previewModal');
+        const previewFrame = document.getElementById('previewFrame');
+        const btnPreview = document.getElementById('btnPreview');
+        const btnClosePreview = document.getElementById('btnClosePreview');
+
+        const btnUndo = document.getElementById('btnUndo');
+        const btnRedo = document.getElementById('btnRedo');
+        const btnAktiviti = document.getElementById('btnAktiviti');
+        const dropdownAktiviti = document.getElementById('dropdownAktiviti');
+        const historyList = document.getElementById('historyList');
+
+        const btnClearDiff = document.getElementById('btnClearDiff');
+        const btnLoadProject = document.getElementById('btnLoadProject');
+        const btnSaveProject = document.getElementById('btnSaveProject');
+
+        const btnToggleExpand = document.getElementById('btnToggleExpand');
+        const iconExpand = document.getElementById('iconExpand');
+        const iconShrink = document.getElementById('iconShrink');
+        const btnCopyCode = document.getElementById('btnCopyCode');
+        const rightPanel = document.getElementById('rightPanel');
+
+        const highlightLayer = document.getElementById('highlightLayer');
+        const lineNumbers = document.getElementById('lineNumbers');
+        let highlightTimeout;
+
+        // Pengurusan State
+        const STORAGE_KEY = 'geminiOS_projectCode';
+        const THEME_KEY = 'geminiOS_theme';
+        const PRESETS_KEY = 'geminiOS_project_presets'; // Key untuk pengurus projek
+        const VERSION_KEY = 'geminiOS_app_version'; // Key untuk versi
+
+        let currentPresetName = ''; // Simpan nama preset semasa
+        
+        // Memaksa versi untuk bermula atau kekal pada minimum 5.1
+        let currentAppVersion = parseFloat(localStorage.getItem(VERSION_KEY));
+        if (isNaN(currentAppVersion) || currentAppVersion < 5.1) {
+            currentAppVersion = 5.1;
+            localStorage.setItem(VERSION_KEY, currentAppVersion);
+        }
+        
+        // Elemen DOM Pengurus Projek
+        const btnProjectManager = document.getElementById('btnProjectManager');
+        const projectModal = document.getElementById('projectModal');
+        const projectModalCard = document.getElementById('projectModalCard');
+        const btnCloseProjectManager = document.getElementById('btnCloseProjectManager');
+        const btnNewProject = document.getElementById('btnNewProject');
+        const btnSavePreset = document.getElementById('btnSavePreset');
+        const presetNameInput = document.getElementById('presetName');
+        const presetListContainer = document.getElementById('presetList');
+        const appTitleBar = document.getElementById('appTitleBar');
+        const appFooterVersion = document.getElementById('appFooterVersion');
+
+        let isDarkMode = false;
+        
+        // Sejarah Undo/Redo (Max 10 langkah)
+        const MAX_HISTORY = 10;
+        let codeHistory = [];
+        let historyIndex = -1;
+
+        // Kemas kini Tajuk Tetingkap
+        function updateWindowTitle() {
+            let title = '';
+            const code = elProjectCode.value;
+            const titleMatch = code.match(/<title>([\s\S]*?)<\/title>/i);
+            
+            if (titleMatch && titleMatch[1].trim() !== '') {
+                title = titleMatch[1].trim();
+            } else if (currentPresetName !== '') {
+                title = currentPresetName;
+            }
+            
+            if (title !== '') {
+                appTitleBar.textContent = `Pembantu Kod Gemini - [ ${title} ]`;
+                document.title = `Codify: ${title}`;
+            } else {
+                appTitleBar.textContent = 'Pembantu Kod Gemini';
+                document.title = 'Pembantu Kod Gemini';
+            }
+        }
+
+        function updateLineNumbers() {
+            const linesCount = elProjectCode.value.split('\n').length || 1;
+            let linesHtml = '';
+            for (let i = 1; i <= linesCount; i++) {
+                linesHtml += i + '<br>';
+            }
+            lineNumbers.innerHTML = linesHtml;
+        }
+
+        // Logik Syntax Highlighting (Tema Gemini HTML)
+        function colorizeHTML(htmlString) {
+            if (!htmlString) return '';
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                     .replace(/&/g, "&amp;")
+                     .replace(/</g, "&lt;")
+                     .replace(/>/g, "&gt;");
+            }
+
+            let result = '';
+            // Regex mencari Komen, Tag, atau Teks Biasa
+            const regex = /(<!--[\s\S]*?-->)|(<[^>]+>)|([^<]+)/g;
+            let match;
+
+            while ((match = regex.exec(htmlString)) !== null) {
+                if (match[1]) {
+                    // Warnakan Komen HTML
+                    result += `<span class="syn-com">${escapeHtml(match[1])}</span>`;
+                } else if (match[2]) {
+                    // Warnakan Tag HTML
+                    let tag = escapeHtml(match[2]);
+                    
+                    // Asingkan warna nama Tag
+                    tag = tag.replace(/^(&lt;\/?)([a-zA-Z0-9\-:]+)/, '$1<span class="syn-tag">$2</span>');
+                    
+                    // Asingkan warna Atribut dan Nilai String
+                    tag = tag.replace(/([a-zA-Z0-9\-:]+)=(&quot;[^&]*&quot;|&#039;[^&]*&#039;)/g, (m, attr, val) => {
+                        return `<span class="syn-attr">${attr}</span>=<span class="syn-val">${val}</span>`;
+                    });
+                    
+                    // Warnakan kurungan (< / >) sama seperti tag
+                    result += `<span class="syn-tag">${tag}</span>`;
+                } else if (match[3]) {
+                    // Teks biasa
+                    result += escapeHtml(match[3]);
+                }
+            }
+            
+            if(result.endsWith('\n')) result += ' '; 
+            return result;
+        }
+
+        function applyHighlight() {
+            highlightLayer.innerHTML = colorizeHTML(elProjectCode.value);
+            updateLineNumbers();
+        }
+
+        // Inisialisasi Aplikasi
+        function initApp() {
+            // Load Tema
+            const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+            isDarkMode = (savedTheme === 'dark');
+            applyTheme();
+
+            // Papar Versi Terkini pada Footer
+            appFooterVersion.innerHTML = `Pembantu Kod Gemini &copy; Codify V${currentAppVersion.toFixed(1)}`;
+
+            // Load Kod Projek
+            const savedCode = localStorage.getItem(STORAGE_KEY);
+            if (savedCode) {
+                elProjectCode.value = savedCode;
+                saveStateToHistory(savedCode, 'Projek dimuatkan');
+            } else {
+                saveStateToHistory('', 'Projek kosong (Permulaan)');
+            }
+
+            // Generate highlight kali pertama
+            applyHighlight();
+            updateWindowTitle(); // Kemas kini tajuk awal
+
+            // Auto-save dan real-time highlight delay
+            elProjectCode.addEventListener('input', () => {
+                localStorage.setItem(STORAGE_KEY, elProjectCode.value);
+                
+                // Segerakkan teks biasa secara serta-merta agar editor pantas tidak lag
+                highlightLayer.textContent = elProjectCode.value;
+                if(highlightLayer.textContent.endsWith('\n')) highlightLayer.textContent += ' ';
+
+                updateWindowTitle(); // Kemas kini tajuk semasa menaip
+
+                // Reset pemasa: Tunggu 2 saat selepas tiada menaip sebelum warnakan kod
+                clearTimeout(highlightTimeout);
+                highlightTimeout = setTimeout(applyHighlight, 2000);
+            });
+            
+            // Sync Scroll antara text editor lutsinar, lapisan warna, dan nombor baris
+            elProjectCode.addEventListener('scroll', () => {
+                highlightLayer.scrollTop = elProjectCode.scrollTop;
+                highlightLayer.scrollLeft = elProjectCode.scrollLeft;
+                lineNumbers.scrollTop = elProjectCode.scrollTop;
+            });
+
+            // Simpan sejarah apabila pengguna berhenti menaip seketika (debounce)
+            let typingTimer;
+            elProjectCode.addEventListener('keyup', () => {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    saveStateToHistory(elProjectCode.value, 'Menaip secara manual');
+                }, 1500);
+            });
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem(THEME_KEY, isDarkMode ? 'dark' : 'light');
+            applyTheme();
+        }
+
+        function applyTheme() {
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                iconMoon.classList.add('hidden');
+                iconSun.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                iconSun.classList.add('hidden');
+                iconMoon.classList.remove('hidden');
+            }
+        }
+
+        function saveStateToHistory(code, actionName) {
+            // Jika ada sejarah ke hadapan (kerana pernah undo), potong sejarah masa depan
+            if (historyIndex < codeHistory.length - 1) {
+                codeHistory = codeHistory.slice(0, historyIndex + 1);
+            }
+            
+            // Jangan simpan jika tiada perubahan dari sejarah terakhir
+            if (historyIndex >= 0 && codeHistory[historyIndex].code === code) return;
+
+            codeHistory.push({ code: code, action: actionName, time: new Date().toLocaleTimeString() });
+            
+            // Hadkan maksimum 10 langkah
+            if (codeHistory.length > MAX_HISTORY) {
+                codeHistory.shift();
+            }
+            
+            historyIndex = codeHistory.length - 1;
+            updateHistoryUI();
+        }
+
+        function performUndo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                applyHistoryState();
+                showToast('Undo berjaya.', 'info');
+            }
+        }
+
+        function performRedo() {
+            if (historyIndex < codeHistory.length - 1) {
+                historyIndex++;
+                applyHistoryState();
+                showToast('Redo berjaya.', 'info');
+            }
+        }
+        
+        function jumpToHistory(index) {
+            if (index >= 0 && index < codeHistory.length) {
+                historyIndex = index;
+                applyHistoryState();
+                dropdownAktiviti.classList.add('hidden');
+                showToast('Kembali ke aktiviti dipilih.', 'info');
+            }
+        }
+
+        function applyHistoryState() {
+            const state = codeHistory[historyIndex];
+            elProjectCode.value = state.code;
+            localStorage.setItem(STORAGE_KEY, state.code);
+            applyHighlight(); // Refresh warna
+            updateWindowTitle(); // Kemas kini tajuk
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            // Butang status
+            btnUndo.disabled = historyIndex <= 0;
+            btnRedo.disabled = historyIndex >= codeHistory.length - 1;
+
+            // Bina senarai dropdown
+            historyList.innerHTML = '';
+            if (codeHistory.length === 0) {
+                historyList.innerHTML = '<li class="px-4 py-2 text-gray-500 italic">Tiada aktiviti direkodkan</li>';
+                return;
+            }
+
+            // Susun terbalik (yang terbaru di atas)
+            for (let i = codeHistory.length - 1; i >= 0; i--) {
+                const item = codeHistory[i];
+                const li = document.createElement('li');
+                const isCurrent = i === historyIndex;
+                
+                li.className = `px-4 py-2 cursor-pointer border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex justify-between items-center ${isCurrent ? 'bg-blue-50 dark:bg-blue-900/30 font-semibold' : ''}`;
+                li.innerHTML = `
+                    <span class="truncate pr-2">${item.action}</span>
+                    <span class="text-xs text-gray-400 whitespace-nowrap">${item.time}</span>
+                `;
+                
+                li.onclick = () => jumpToHistory(i);
+                historyList.appendChild(li);
+            }
+        }
+
+        function processDiff() {
+            let projectCode = elProjectCode.value;
+            const diffText = elDiffInput.value;
+
+            if (!projectCode) {
+                showToast('Sila tampal kod projek asal di sebelah kiri.', 'error');
+                return;
+            }
+            if (!diffText) {
+                showToast('Sila tampal arahan pindaan di sebelah kanan.', 'warning');
+                return;
+            }
+
+            const regex = /<<<<[\s\S]*?\n([\s\S]*?)\n====\n([\s\S]*?)\n>>>>/g;
+            let match;
+            let modificationsCount = 0;
+            let errors = 0;
+
+            while ((match = regex.exec(diffText)) !== null) {
+                const oldCode = match[1].trimEnd();
+                const newCode = match[2].trimEnd();
+
+                // Padanan longgar (buang whitespace untuk perbandingan)
+                const normalize = str => str.replace(/\s+/g, '');
+                const normalizedOld = normalize(oldCode);
+                
+                let foundExact = projectCode.includes(oldCode);
+                
+                if (foundExact) {
+                    projectCode = projectCode.replace(oldCode, newCode);
+                    modificationsCount++;
+                } else {
+                    // Cuba padanan longgar jika indentasi lari
+                    let replaced = false;
+                    const escapedOldRegex = new RegExp(oldCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'), 'g');
+                    
+                    if (escapedOldRegex.test(projectCode)) {
+                         projectCode = projectCode.replace(escapedOldRegex, newCode);
+                         modificationsCount++;
+                         replaced = true;
+                    }
+                    
+                    if (!replaced) errors++;
+                }
+            }
+
+            if (modificationsCount > 0) {
+                elProjectCode.value = projectCode;
+                localStorage.setItem(STORAGE_KEY, projectCode);
+                saveStateToHistory(projectCode, `Pindaan diproses (${modificationsCount} blok)`);
+                applyHighlight(); // Refresh warna
+                updateWindowTitle(); // Kemas kini tajuk
+                
+                // Kosongkan input diff dan tunjuk notifikasi TERLEBIH DAHULU
+                elDiffInput.value = ''; 
+                showToast(`${modificationsCount} pindaan berjaya dibuat!`, 'success');
+                
+                // Naik taraf dan simpan versi automatik
+                try {
+                    currentAppVersion = parseFloat((currentAppVersion + 0.1).toFixed(1));
+                    localStorage.setItem(VERSION_KEY, currentAppVersion);
+                    appFooterVersion.innerHTML = `Pembantu Kod Gemini &copy; Codify V${currentAppVersion.toFixed(1)}`;
+                } catch (error) {
+                    console.error("Gagal mengemaskini versi:", error);
+                }
+                
+            } else if (errors > 0) {
+                showToast(`Gagal! Kod lama tidak dijumpai dalam projek.`, 'error');
+            } else {
+                showToast(`Tiada format <<<< ==== >>>> dijumpai.`, 'warning');
+            }
+        }
+
+        // Fungsi Pengurus Projek (Preset)
+        function openProjectManager() {
+            presetNameInput.value = currentPresetName; // Set nama secara automatik untuk elak overwrite silap projek
+            projectModal.classList.remove('hidden');
+            projectModal.classList.add('flex');
+            renderPresetList();
+            setTimeout(() => {
+                projectModal.classList.remove('opacity-0');
+                projectModalCard.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeProjectManager() {
+            projectModal.classList.add('opacity-0');
+            projectModalCard.classList.add('scale-95');
+            setTimeout(() => {
+                projectModal.classList.add('hidden');
+                projectModal.classList.remove('flex');
+            }, 200);
+        }
+
+        function renderPresetList() {
+            const presets = JSON.parse(localStorage.getItem(PRESETS_KEY)) || {};
+            presetListContainer.innerHTML = '';
+            const keys = Object.keys(presets);
+            
+            if (keys.length === 0) {
+                presetListContainer.innerHTML = '<div class="p-3 text-center text-sm text-gray-500 italic">Tiada projek tersimpan.</div>';
+                return;
+            }
+
+            keys.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-[#252525] transition';
+                item.innerHTML = `
+                    <span class="font-medium text-sm truncate pr-2 text-gray-800 dark:text-gray-200">${name}</span>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="loadPreset('${name}')" class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded font-medium transition">Buka</button>
+                        <button onclick="deletePreset('${name}')" class="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800/50 rounded font-medium transition">Padam</button>
+                    </div>
+                `;
+                presetListContainer.appendChild(item);
+            });
+        }
+
+        function savePreset() {
+            const name = presetNameInput.value.trim();
+            const currentCode = elProjectCode.value;
+            if (!name) { showToast("Sila masukkan nama projek.", "warning"); return; }
+            if (!currentCode) { showToast("Tiada kod projek untuk disimpan.", "warning"); return; }
+
+            const presets = JSON.parse(localStorage.getItem(PRESETS_KEY)) || {};
+            presets[name] = currentCode;
+            localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+            currentPresetName = name; // Set preset semasa
+            presetNameInput.value = '';
+            renderPresetList();
+            updateWindowTitle(); // Kemas kini tajuk
+            showToast(`Projek '${name}' berjaya disimpan.`, "success");
+        }
+
+        window.loadPreset = function(name) {
+            const presets = JSON.parse(localStorage.getItem(PRESETS_KEY)) || {};
+            if (presets[name] !== undefined) {
+                elProjectCode.value = presets[name];
+                localStorage.setItem(STORAGE_KEY, presets[name]);
+                currentPresetName = name; // Set preset semasa supaya tidak clash
+                
+                // Clear undo history to prevent bleeding from old project
+                codeHistory = []; 
+                historyIndex = -1;
+                saveStateToHistory(presets[name], 'Buka Projek: ' + name);
+                
+                applyHighlight();
+                updateWindowTitle(); // Kemas kini tajuk
+                closeProjectManager();
+                showToast(`Projek '${name}' dimuatkan.`, "success");
+            }
+        };
+
+        window.deletePreset = function(name) {
+            if (confirm(`Pasti memadam projek '${name}'?`)) {
+                const presets = JSON.parse(localStorage.getItem(PRESETS_KEY)) || {};
+                delete presets[name];
+                localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+                renderPresetList();
+                showToast(`Projek '${name}' dipadam.`, "info");
+            }
+        };
+
+        // Fungsi Modal Pengesahan Kosongkan
+        function openConfirmModal() {
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+            setTimeout(() => {
+                confirmModal.classList.remove('opacity-0');
+                confirmModalCard.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.add('opacity-0');
+            confirmModalCard.classList.add('scale-95');
+            setTimeout(() => {
+                confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
+            }, 200);
+        }
+
+        function executeClearProject() {
+            elProjectCode.value = '';
+            elDiffInput.value = '';
+            currentPresetName = ''; // Padam memori nama projek semasa
+            localStorage.removeItem(STORAGE_KEY);
+            codeHistory = []; // Reset sejarah undo/redo
+            historyIndex = -1;
+            saveStateToHistory('', 'Kosongkan Projek');
+            applyHighlight(); // Refresh warna
+            updateWindowTitle(); // Kemaskini tajuk
+            
+            closeConfirmModal();
+            showToast('Projek telah dikosongkan.', 'info');
+        }
+
+        // Fungsi Tetingkap Preview
+        function openPreview() {
+            const code = elProjectCode.value;
+            if (!code) {
+                showToast('Tiada kod untuk dipratonton.', 'warning');
+                return;
+            }
+            previewFrame.srcdoc = code;
+            previewModal.classList.remove('hidden');
+            previewModal.classList.add('flex');
+        }
+
+        function closePreview() {
+            previewModal.classList.add('hidden');
+            previewModal.classList.remove('flex');
+            previewFrame.srcdoc = ''; // Hentikan skrip berjalan
+        }
+        
+        // Fungsi Kembangkan/Kecilkan Editor
+        function toggleExpandPanel() {
+            if (rightPanel.classList.contains('hidden')) {
+                rightPanel.classList.remove('hidden');
+                iconExpand.classList.remove('hidden');
+                iconShrink.classList.add('hidden');
+            } else {
+                rightPanel.classList.add('hidden');
+                iconExpand.classList.add('hidden');
+                iconShrink.classList.remove('hidden');
+            }
+        }
+
+        // Fungsi Salin (Copy to Clipboard)
+        function copyProjectCode() {
+            const code = elProjectCode.value;
+            if (!code) {
+                showToast('Tiada kod untuk disalin.', 'warning');
+                return;
+            }
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = code;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Kod projek berjaya disalin!', 'success');
+            } catch (err) {
+                showToast('Ralat semasa menyalin kod.', 'error');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Fungsi Muat Naik / Simpan Fail (Load / Save)
+        function loadProjectFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.html,.js,.css,.txt';
+            input.onchange = e => { 
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsText(file,'UTF-8');
+                reader.onload = readerEvent => {
+                    const content = readerEvent.target.result;
+                    elProjectCode.value = content;
+                    localStorage.setItem(STORAGE_KEY, content);
+                    saveStateToHistory(content, `Muat fail: ${file.name}`);
+                    applyHighlight(); // Refresh warna
+                    showToast('Projek berjaya dimuat naik.', 'success');
+                }
+            }
+            input.click();
+        }
+        
+        function saveProjectFile() {
+            const code = elProjectCode.value;
+            if (!code) {
+                showToast('Tiada kod untuk disimpan.', 'warning');
+                return;
+            }
+            const blob = new Blob([code], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            // Format Tarikh (yy-mm-dd)
+            const date = new Date();
+            const yy = date.getFullYear().toString().slice(-2);
+            const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+            const dd = date.getDate().toString().padStart(2, '0');
+            const dateStr = `${yy}-${mm}-${dd}`;
+            
+            // Dapatkan dan bersihkan Nama Aplikasi
+            let appName = 'Codify';
+            const titleMatch = code.match(/<title>([\s\S]*?)<\/title>/i);
+            
+            if (titleMatch && titleMatch[1].trim() !== '') {
+                appName = titleMatch[1].trim().replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/ /g, '_');
+            } else if (currentPresetName !== '') {
+                appName = currentPresetName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/ /g, '_');
+            }
+            
+            // Format Akhir: <nama_aplikasi>_yy-mm-dd.html
+            a.href = url;
+            a.download = `${appName}_${dateStr}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Projek dieksport sebagai ${appName}_${dateStr}.html`, 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            // Set Warna dan Ikon
+            toast.className = 'fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded shadow-lg transform transition-all duration-300 z-50';
+            
+            if (type === 'success') {
+                toast.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-300');
+                iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-300');
+                iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else if (type === 'warning') {
+                toast.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-300');
+                iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+            } else {
+                toast.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-300');
+                iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+            }
+
+            msgEl.textContent = message;
+
+            // Tunjuk (Animate In)
+            toast.classList.remove('translate-y-20', 'opacity-0');
+
+            // Sembunyi selepas 3 saat (Animate Out)
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Event Listeners
+        btnProcessDiff.addEventListener('click', processDiff);
+        btnThemeToggle.addEventListener('click', toggleTheme);
+        
+        btnConfirmClear.addEventListener('click', openConfirmModal);
+        btnCancelClear.addEventListener('click', closeConfirmModal);
+        btnExecuteClear.addEventListener('click', executeClearProject);
+        
+        btnPreview.addEventListener('click', openPreview);
+        btnClosePreview.addEventListener('click', closePreview);
+        
+        btnUndo.addEventListener('click', performUndo);
+        btnRedo.addEventListener('click', performRedo);
+        
+        // Togol dropdown menu aktiviti
+        btnAktiviti.addEventListener('click', () => {
+            dropdownAktiviti.classList.toggle('hidden');
+        });
+        
+        // Tutup dropdown jika klik luar
+        document.addEventListener('click', (e) => {
+            if (!dropdownAktiviti.contains(e.target) && !btnAktiviti.contains(e.target)) {
+                dropdownAktiviti.classList.add('hidden');
+            }
+        });
+        
+        btnProjectManager.addEventListener('click', openProjectManager);
+        btnCloseProjectManager.addEventListener('click', closeProjectManager);
+        btnSavePreset.addEventListener('click', savePreset);
+        
+        btnNewProject.addEventListener('click', () => {
+            if (confirm('Mahu mulakan projek baru? Semua kod di kanvas akan dikosongkan.')) {
+                elProjectCode.value = '';
+                elDiffInput.value = '';
+                currentPresetName = ''; // Reset nama projek
+                localStorage.removeItem(STORAGE_KEY);
+                codeHistory = []; // Reset sejarah undo
+                historyIndex = -1;
+                saveStateToHistory('', 'Mula Projek Baru');
+                applyHighlight();
+                updateWindowTitle();
+                closeProjectManager();
+                showToast('Ruang kerja baharu sedia digunakan.', 'success');
+            }
+        });
+        
+        btnLoadProject.addEventListener('click', loadProjectFile);
+        btnSaveProject.addEventListener('click', saveProjectFile);
+        btnToggleExpand.addEventListener('click', toggleExpandPanel);
+        btnCopyCode.addEventListener('click', copyProjectCode);
+        
+        btnClearDiff.addEventListener('click', () => {
+            elDiffInput.value = '';
+            showToast('Arahan dikosongkan.', 'info');
+        });
+
+        // Jalankan apabila DOM bersedia
+        window.onload = initApp;
+    </script>
+</body>
+</html>
